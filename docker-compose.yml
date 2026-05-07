@@ -1,0 +1,13 @@
+services:
+  bot:
+    build: .
+    container_name: secmess_bot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    # Using volume mount for the whole dir during dev, 
+    # but for production on Oracle server, we'd typically just mount the DB
+    # volumes:
+    #   - ./bot_data.db:/app/bot_data.db
