@@ -17,6 +17,14 @@ async def init_db():
                 created_at TIMESTAMP
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS reply_recipients (
+                sender_id INTEGER PRIMARY KEY,
+                recipient_username TEXT,
+                recipient_id INTEGER,
+                created_at TIMESTAMP
+            )
+        """)
         await db.commit()
 
 async def save_secret(sender_id, content, recipient_id=None, recipient_username=None, secret_id=None):
@@ -64,3 +72,18 @@ async def cleanup_history():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM secrets WHERE recipient_username IS NOT NULL AND length(recipient_username) < 3")
         await db.commit()
+
+async def save_reply_recipient(sender_id, recipient_username, recipient_id=None):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT OR REPLACE INTO reply_recipients (sender_id, recipient_username, recipient_id, created_at) VALUES (?, ?, ?, ?)",
+            (sender_id, recipient_username, recipient_id, datetime.now())
+        )
+        await db.commit()
+
+async def get_reply_recipient(sender_id):
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Get recipient if created in the last 10 minutes
+        query = "SELECT recipient_username, recipient_id FROM reply_recipients WHERE sender_id = ? AND created_at > datetime('now', '-10 minutes')"
+        async with db.execute(query, (sender_id,)) as cursor:
+            return await cursor.fetchone()
